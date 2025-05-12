@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+.env/
+.venv/
+ENV/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+coverage.xml
+*.cover
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Local development settings
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+docs/
+*.md
+LICENSE
+
+# Misc
+*.bak
+*.tmp
+*.temp
