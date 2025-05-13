@@ -62,7 +62,7 @@ def cli():
 
 @cli.command()
 @click.option("--host", default="0.0.0.0", help="Host to bind the server to")
-@click.option("--port", default=8000, help="Port to bind the server to")
+@click.option("--port", default=8080, help="Port to bind the server to")
 @click.option("--reload", is_flag=True, help="Enable auto-reload on code changes")
 def server(host: str, port: int, reload: bool):
     """Start the Lock-Nessie authentication server"""
