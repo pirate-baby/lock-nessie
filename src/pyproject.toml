@@ -38,3 +38,6 @@ packages = ["server", "common"]
 include = [
     "server/templates/**/*.html",
 ]
+
+[tool.hatch.version]
+source = "vcs"
