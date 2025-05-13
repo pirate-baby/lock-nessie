@@ -1,7 +1,13 @@
 # Lock Nessie
 
-Quickly and simply add OpenID auth to your Iceberg Nessie stack
+Quickly and simply add OpenID auth to your Iceberg Nessie stack.
 
+# Installation
+- `pip install locknessie`
+- `uv add locknessie`
+
+OpenID auth requires a server that can facilitiate the login flow, and a client that can store (and re-request as needed) the resulting bearer token
+once that flow has been completed. `lock-nessie` provides both of those for nessie-compatible Iceberg REST clients.
 
 # Server
 This component facilitiates your OpenID Oauth2 login flow.
