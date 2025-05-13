@@ -38,3 +38,24 @@ _note_: lock-nessie uses the standard [boto3 credentials order](https://boto3.am
 Optional:
 - `LOCKNESSIE_MAX_AGE`: The maximum age of the cookie in seconds (default: 31536000 - 1 year). Note this is _not_ the same as the token age for the OpenID auth.
 
+## Client:
+Required for all providers:
+- `LOCKNESSIE_SECRET_PROVIDER`: The provider where the secret is stored, one of:
+    - `aws_secrets_manager`
+    - `hachicorp_vault`
+- `LOCKNESSIE_SECRET_IDENTIFIER`: The resource id for the secret, like an arn in aws.
+
+Optional:
+- `LOCKNESSIE_CACHE_PATH`: Where to store the cached OpenID token.
+- `LOCKNESSIE_SERVER_URL`: If provided, the client will attempt to pop open a login window when the token has expired.
+
+## Client integrations
+
+**PyIceberg**
+```python
+
+from locknessie.client.pyiceberg import load_catalog
+
+catalog = load_catalog("nessie", uri="http://nessie:19120/iceberg/main/")
+```
+*note:* There is a bunch of auth bits in pyiceberg that indicate better integration may be possible, but it is non-obvious how a web-based login flow, refresh token etc would work in practice. TODO see if this can be refined.

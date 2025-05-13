@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "lock-nessie"
+name = "locknessie"
 version = "0.0.1"
 description = "Lock-Nessie provides a client and server pair for authentication to Nessie with OpenID."
 readme = "README.md"
@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.scripts]
-lock-nessie = "server.cli:cli"
+locknessie = "server.cli:cli"
 
 [project.optional-dependencies]
 aws = [
