@@ -1,11 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "nessie-oauth2"
+name = "lock-nessie"
 version = "0.0.1"
-description = "Nessie OAuth2 provides a client and server pair for authentication to Nessie with OpenID."
+description = "Lock-Nessie provides a client and server pair for authentication to Nessie with OpenID."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.12",
-    "msal>=1.32.3",
+    "pydantic>=2.11.4",
+    "pydantic-settings>=2.9.1",
     "pyjwt>=2.10.1",
+    "click>=8.1.7",
+    "uvicorn>=0.27.1",
 ]
+
+[project.scripts]
+lock-nessie = "server.cli:cli"
+
+[project.optional-dependencies]
+aws = [
+    "boto3>=1.38.14",
+]
+microsoft = [
+    "msal>=1.32.3",
+]
+keycloak = [
+    "python-keycloak>=5.5.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["server", "common"]
