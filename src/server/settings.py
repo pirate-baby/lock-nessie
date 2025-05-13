@@ -1,17 +1,13 @@
 from enum import Enum
 from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Optional
+from common.settings import CommonSettings, SecretProvider
 
 class OpenIDIssuer(str, Enum):
     microsoft = "microsoft"
     keycloak = "keycloak"
 
-class SecretProvider(str, Enum):
-    aws_secrets_manager = "aws_secrets_manager"
-
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="locknessie_", case_sensitive=False)
+class Settings(CommonSettings):
 
     environment: str = Field(..., description="'production' for released code, 'development' for local development")
 
