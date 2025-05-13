@@ -1,5 +1,5 @@
 # Lock Nessie
-![server/static/logo.png]
+![logo](server/static/logo.png)
 _Quickly and simply add OpenID auth to your Iceberg Nessie stack._
 
 # Installation
