@@ -19,6 +19,9 @@ jobs:
       id-token: write
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        fetch-tags: true
     # build distribution
     - name: Set up Python
       uses: actions/setup-python@v5
