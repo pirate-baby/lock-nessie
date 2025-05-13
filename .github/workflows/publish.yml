@@ -34,7 +34,11 @@ jobs:
         cd src
         python -m build
 
+
     # publish to pypi
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        packages-dir: src/dist
+
 
