@@ -1,6 +1,6 @@
 # Lock Nessie
-
-Quickly and simply add OpenID auth to your Iceberg Nessie stack.
+![server/static/logo.png]
+_Quickly and simply add OpenID auth to your Iceberg Nessie stack._
 
 # Installation
 - `pip install locknessie`
