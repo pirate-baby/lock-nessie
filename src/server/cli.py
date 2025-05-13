@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 @app.get("/")
 def home(request: Request,
-         aws_secret_uri: Optional[str] = None):
+         aws_secret_arn: Optional[str] = None):
     """Home page"""
     user = request.cookies.get("user", None)
     expires = request.cookies.get("openid_expires", None)
@@ -50,7 +50,7 @@ def home(request: Request,
             "is_logged_in": is_logged_in,
             "expires": expires_dt,
             "time_until_expiry": time_until_expiry,
-            "aws_secret_uri": aws_secret_uri
+            "aws_secret_arn": aws_secret_arn
         }
     )
 

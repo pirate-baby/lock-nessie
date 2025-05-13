@@ -114,7 +114,8 @@ async def auth_callback(code: Optional[str] = None,
     expires = result["id_token_claims"]["exp"]
 
     secret = get_secret(user)
-    response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    secret_identifier = "=".join(secret.secret_identity_pair)
+    response = RedirectResponse(url=f"/?{secret_identifier}", status_code=status.HTTP_303_SEE_OTHER)
     secret.set_token_value(token)
     set_auth_cookies(response, user, token, refresh, expires)
     logger.info("Redirecting to home page")

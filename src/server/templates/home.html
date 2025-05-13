@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lock-Nessie Auth Server</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="{{ url_for('static', path='favicon.ico') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -45,11 +46,12 @@
                     </div>
 
                     <!-- AWS Secret URI -->
-                    {% if aws_secret_uri %}
+                    {% if aws_secret_arn %}
                     <div class="border-b border-gray-200 pb-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">AWS Secret URI</h3>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">AWS Secret ARN</h3>
+                        <p>You may need this value to set up your local client or Dremio connector.</p>
                         <div class="bg-gray-50 p-4 rounded-md">
-                            <code class="text-sm text-gray-800 break-all">{{ aws_secret_uri }}</code>
+                            <code class="text-sm text-gray-800 break-all">{{ aws_secret_arn }}</code>
                         </div>
                     </div>
                     {% endif %}
