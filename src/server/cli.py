@@ -1,5 +1,6 @@
 import click
 import uvicorn
+import importlib.metadata as metadata
 from typing import Optional
 from datetime import datetime
 from fastapi import FastAPI, Request
@@ -11,7 +12,7 @@ import humanize
 from common.logger import get_logger
 from server.main import router
 
-app = FastAPI(title="Lock-Nessie Auth Server", version="0.0.1")
+app = FastAPI(title="Lock-Nessie Auth Server", version=metadata.version("locknessie"))
 app.include_router(router)
 
 # Get the directory containing the current file
