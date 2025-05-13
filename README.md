@@ -1,7 +1,7 @@
 # Lock Nessie
 
 <div align="center">
-    <img src="src/server/static/logo.png" style="max-width:300px; width:100%;" alt="logo"/>
+    <img src="src/server/static/logo.png" width="300" alt="logo"/>
 </div>
 
 _Quickly and simply add OpenID auth to your Iceberg Nessie stack._
