@@ -10,17 +10,17 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import humanize
 from common.logger import get_logger
+from server.settings import settings
 from server.main import router
 
 app = FastAPI(title="Lock-Nessie Auth Server", version=metadata.version("locknessie"))
 app.include_router(router)
 
 # Get the directory containing the current file
-current_dir = Path(__file__).parent
-templates = Jinja2Templates(directory=str(current_dir / "templates"))
+templates = Jinja2Templates(directory=settings.templates_dir_path)
 
 # Mount static files
-app.mount("/static", StaticFiles(directory=str(current_dir / "static")), name="static")
+app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
 logger = get_logger(__name__)
 

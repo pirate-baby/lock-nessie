@@ -53,7 +53,22 @@ _note_: lock-nessie uses the standard [boto3 credentials order](https://boto3.am
 Optional:
 - `LOCKNESSIE_MAX_AGE`: The maximum age of the cookie in seconds (default: 31536000 - 1 year). Note this is _not_ the same as the token age for the OpenID auth.
 
-## Client:
+### Modifying the home template
+The `home.html` template is used for the root path ("/") for both authed and unauthed users. It is a standard Jinja2 template with the following context variables passed to it:
+
+- `request`: The FastAPI request object, where login cookies have been assigned.
+- `user`: The username of the logged-in user (None if not logged in)
+- `is_logged_in`: Boolean indicating if a user is logged in
+- `expires`: Datetime object of when the session expires (None if not logged in)
+- `time_until_expiry`: Human-readable string of time until session expires (None if not logged in)
+- `aws_secret_arn`: Optional AWS secret ARN if provided as a `get` param (from a successful login)
+
+You can create a different template that matches your company/use case and set `LOCKNESSIE_TEMPLATES_DIR_PATH` to override the location.
+
+>![WARNING]
+> The template file must be named `home.html` to override the default template.
+
+# Client:
 Required for all providers:
 - `LOCKNESSIE_SECRET_PROVIDER`: The provider where the secret is stored, one of:
     - `aws_secrets_manager`

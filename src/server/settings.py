@@ -1,4 +1,5 @@
 from enum import Enum
+from pathlib import Path
 from pydantic import Field
 from typing import Optional
 from common.settings import CommonSettings, SecretProvider
@@ -27,6 +28,9 @@ class Settings(CommonSettings):
 
     # Cookie settings
     max_age: int = Field(default=(60 * 60 * 24 * 365), description="The maximum age of the cookie in seconds, default is 1 year")
+
+    # Template settings
+    templates_dir_path: str = Field(default=str(Path(__file__).parent / "templates"), description="The path to locate the home.html template for rendering the home page.")
 
 
 settings = Settings()
