@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 import msal
-from logger import get_logger
-from settings import safely_get_settings
+from locknessie.logger import get_logger
+from locknessie.settings import safely_get_settings
 
 if TYPE_CHECKING:
     from pathlib import Path

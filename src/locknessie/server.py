@@ -3,8 +3,8 @@ import pytz
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
-from settings import safely_get_settings
-import main
+from locknessie.settings import safely_get_settings
+import locknessie.main as main
 
 settings = safely_get_settings()
 

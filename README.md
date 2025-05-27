@@ -4,94 +4,78 @@
     <img src="src/server/static/logo.png" width="300" alt="logo"/>
 </div>
 
-_Quickly and simply add OpenID auth to your Iceberg Nessie stack._
+_Quickly and simply add OpenID auth to your Iceberg Nessie tools._
+
+OpenID auth requires a flow to facilitiate the login to get access and refresh tokens, a way to distribute that access token to the services that need it (such as your Juypter notebook code, Dremio instance etc), and a process to automatically refresh the token when it exipires. This process is what `locknessie` does.
 
 # Installation
-- `pip install locknessie`
-- `uv add locknessie`
+- `pip install locknessie[<provider>]`
+- `uv add locknessie[<provider>]`
 
-Or use the docker image:
+You'll need to install the provider required for Nessie authentication - such as `microsoft` if your Nessie uses Microsoft Entra OpenID for auth, `keycloak` etc.
+
+There is also a docker image:
 ```bash
-docker run --rm --env-file .env -p 8080:8080 ghcr.io/pirate-baby/lock-nessie:latest
+docker run --rm --env-file .env -p 8080:8080 ghcr.io/pirate-baby/locknessie:microsoft-latest
 ```
 
-OpenID auth requires a flow to facilitiate the login to get access and refresh tokens, a way to distribute that access token to the services that need it (such as your Juypter notebook code, Dremio instance etc), and a process to automatically refresh the token when it exipires. This process is what `lock-nessie` does.
+`locknessie` has both CLI and module components, and they can be used in conjunction with one another.
 
+## CLI
 
-## Components
-- `login` serves the login screen with a
+for a list of commands and help text run
 
+```bash
+> locknessie --help
+```
+When you first install `locknessie` you need to run `locknessie config init` to set up the configuration. Locknessie will ask you for information required for your provider and store it in a config file (located by default at `~/.locknessie/config.json`). You can manually edit any of the settings there, or use `locknessie config set <setting> <setting-value>`.
 
+Once configured, you can initialize auth and get a bearer token with `locknessie token show`. If this is your first time logging in, a browser window will open automatically for you to authorize with the provider (microsoft, google, keycloak etc). **Note**: if you are running in a browserless environment (such as a docker container) then locknessie will print the login URL into the console logs where you can copy it from and paste into your browser of choice. Once you have aproved the auth, locknessie will print the bearer token into the logs - this token can now be used in your Nessie requests.
 
+If you run `locknessie token show` again, you will see it returns the same token (or a new one once that token expires) without opening a browser window. The token refresh cycle is now in place, and locknessie will use a refresh token behind the scenes to always return you a valid token.
 
+## Module
 
-#### REVISIT BELOW ######
+Typically you will need to access this bearer token in code. Once `locknessie` has been initialized with your authentication you can easily access the tokens via module:
+
+```python
+
+from locknessie.main import LockNessie
+from pyiceberg.catalog import load_catalog
+
+# this will return a new valid token, refreshed if needed.
+token = LockNessie().get_token()
+
+catalog = load_catalog(
+    "nessie",
+    uri= "https://your-nessie-instance.com/iceberg/main/",
+    token=token
+)
+
+namespaces = catalog.list_namespaces()
+```
+
+## Hashicorp Vault impersonation
+Dremio (and possibly other tools) will source an auth token from a Hashicorp Vault secret; for local use, `locknessie` exposes an API endpoint that will mimic vault and allow Dremio to authenticate using your existing OpenID token. Once you have initialized the token exchange, run `locknessie service start -d` to spin up the endpoint. When you are done with the endpoint, you can spin it down with `locknessie service stop`. The default host for the vault endpoint will be `http://localhost:8200`.
 
 ### Envars:
 Required for all providers:
-- `LOCKNESSIE_ENVIRONMENT`: 'production' for released code, 'development' for local development
-- `LOCKNESSIE_REDIRECT_BASE`: The base URL for redirects
 - `LOCKNESSIE_OPENID_ISSUER`: The issuer of the OpenID client, one of:
     - `microsoft` # entra
     - `keycloak`
+
 - `LOCKNESSIE_OPENID_CLIENT_ID`: The client ID of the OpenID client
-- `LOCKNESSIE_OPENID_CLIENT_SECRET`: The client secret of the OpenID client
-- `LOCKNESSIE_SECRET_PROVIDER`: The provider where the secret is stored, one of:
-    - `aws_secrets_manager`
-    - `hachicorp_vault`
 
 Required for `microsoft`:
-- `LOCKNESSIE_OPENID_TENANT`: The tenant of the OpenID client (required for Microsoft)
+- `LOCKNESSIE_OPENID_CLIENT_ID`: The tenant of the OpenID client (required for Microsoft)
 
 Required for `keycloak`:
 - `LOCKNESSIE_OPENID_REALM`: The realm of the OpenID client (required for Keycloak)
 - `LOCKNESSIE_OPENID_URL`: The URL of the OpenID provider
 
-Required for `aws`:
-_note_: lock-nessie uses the standard [boto3 credentials order](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html). For lock-nessie to leverage AWS Secrets Manager, credentials must be provided that have:
-```
-    "secretsmanager:CreateSecret",       // Create a new secret
-    "secretsmanager:GetSecretValue",     // Read the secret value
-    "secretsmanager:DescribeSecret",     // Read secret metadata
-    "secretsmanager:PutSecretValue"      // Write/update secret value
-```
-
-Optional:
-- `LOCKNESSIE_MAX_AGE`: The maximum age of the cookie in seconds (default: 31536000 - 1 year). Note this is _not_ the same as the token age for the OpenID auth.
-
-### Modifying the home template
-The `home.html` template is used for the root path ("/") for both authed and unauthed users. It is a standard Jinja2 template with the following context variables passed to it:
-
-- `request`: The FastAPI request object, where login cookies have been assigned.
-- `user`: The username of the logged-in user (None if not logged in)
-- `is_logged_in`: Boolean indicating if a user is logged in
-- `expires`: Datetime object of when the session expires (None if not logged in)
-- `time_until_expiry`: Human-readable string of time until session expires (None if not logged in)
-- `aws_secret_arn`: Optional AWS secret ARN if provided as a `get` param (from a successful login)
-
-You can create a different template that matches your company/use case and set `LOCKNESSIE_TEMPLATES_DIR_PATH` to override the location.
-
->![WARNING]
-> The template file must be named `home.html` to override the default template.
-
-# Client:
-Required for all providers:
-- `LOCKNESSIE_SECRET_PROVIDER`: The provider where the secret is stored, one of:
-    - `aws_secrets_manager`
-    - `hachicorp_vault`
-- `LOCKNESSIE_SECRET_IDENTIFIER`: The resource id for the secret, like an arn in aws.
-
-Optional:
-- `LOCKNESSIE_CACHE_PATH`: Where to store the cached OpenID token.
-- `LOCKNESSIE_SERVER_URL`: If provided, the client will attempt to pop open a login window when the token has expired.
-
 ## Client integrations
 
-**PyIceberg**
-```python
+## Hashicorp Vault impersonation
 
-from locknessie.client.pyiceberg import load_catalog
 
-catalog = load_catalog("nessie", uri="http://nessie:19120/iceberg/main/")
-```
-*note:* There is a bunch of auth bits in pyiceberg that indicate better integration may be possible, but it is non-obvious how a web-based login flow, refresh token etc would work in practice. TODO see if this can be refined.
+## Dremio

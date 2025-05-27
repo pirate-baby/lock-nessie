@@ -1,4 +1,4 @@
-from settings import safely_get_settings, OpenIDIssuer
+from locknessie.settings import safely_get_settings, OpenIDIssuer
 
 settings = safely_get_settings()
 
@@ -12,7 +12,7 @@ class LockNessie:
         """returns the correct provider based on the settings"""
         match settings.openid_issuer:
             case OpenIDIssuer.microsoft:
-                from auth_providers.microsoft import MicrosoftAuth
+                from locknessie.auth_providers.microsoft import MicrosoftAuth
                 return MicrosoftAuth()
             case _:
                 raise NotImplementedError("Not implemented")

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "locknessie"
-description = "Lock-Nessie provides a client and server pair for authentication to Nessie with OpenID."
+description = "LockNessie provides a client and server pair for authentication to Nessie with OpenID."
 dynamic = ["version"]
 readme = "../README.md"
 requires-python = ">=3.12"
@@ -12,20 +12,15 @@ dependencies = [
     "fastapi>=0.115.12",
     "pydantic>=2.11.4",
     "pydantic-settings>=2.9.1",
-    "pyjwt>=2.10.1",
     "click>=8.1.7",
     "uvicorn>=0.27.1",
     "jinja2>=3.1.6",
-    "humanize>=4.12.3",
 ]
 
 [project.scripts]
-locknessie = "server.cli:cli"
+locknessie = "locknessie.cli:cli"
 
 [project.optional-dependencies]
-aws = [
-    "boto3>=1.38.14",
-]
 microsoft = [
     "msal>=1.32.3",
 ]
@@ -34,9 +29,9 @@ keycloak = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["server", "common"]
+packages = ["locknessie"]
 include = [
-    "server/templates/**/*.html",
+    "templates/**/*.html",
 ]
 
 [tool.hatch.version]
