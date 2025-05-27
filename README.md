@@ -10,16 +10,22 @@ _Quickly and simply add OpenID auth to your Iceberg Nessie stack._
 - `pip install locknessie`
 - `uv add locknessie`
 
-Or use the docker image (primarily intended for server):
+Or use the docker image:
 ```bash
-docker run --rm --env-file .env -p 8080:8080 ghcr.io/pirate-baby/lock-nessie:latest # starts the server at http://localhost:8080
+docker run --rm --env-file .env -p 8080:8080 ghcr.io/pirate-baby/lock-nessie:latest
 ```
 
-OpenID auth requires a server that can facilitiate the login flow, and a client that can store (and re-request as needed) the resulting bearer token
-once that flow has been completed. `lock-nessie` provides both of those for nessie-compatible Iceberg REST clients.
+OpenID auth requires a flow to facilitiate the login to get access and refresh tokens, a way to distribute that access token to the services that need it (such as your Juypter notebook code, Dremio instance etc), and a process to automatically refresh the token when it exipires. This process is what `lock-nessie` does.
 
-# Server
-This component facilitiates your OpenID Oauth2 login flow.
+
+## Components
+- `login` serves the login screen with a
+
+
+
+
+
+#### REVISIT BELOW ######
 
 ### Envars:
 Required for all providers:
