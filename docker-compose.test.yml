@@ -46,6 +46,7 @@ services:
       mc mb myminio/locknessie-bucket --ignore-existing;
       tail -f /dev/null"
   testenv:
+    image: locknessie-testenv
     build:
       context: .
       dockerfile: ./dockerfiles/test.Dockerfile

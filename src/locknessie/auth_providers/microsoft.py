@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
 import msal
 from locknessie.logger import get_logger
 from locknessie.settings import safely_get_settings
@@ -20,7 +20,11 @@ class MicrosoftAuth(AuthBase):
     app: "msal.PublicClientApplication"
     cache: "msal.SerializableTokenCache"
 
-    def __init__(self, auth_type: Optional[AuthType] = AuthType.user):
+    def __init__(self,
+                 auth_type: Optional[AuthType] = AuthType.user):
+        """
+        auth_type: the type of authentication to use - users can log in with a browser, daemons can use secret credentials.
+        """
         super().__init__(auth_type)
         self.cache = None
         if self.auth_type == AuthType.user:

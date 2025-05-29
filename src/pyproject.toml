@@ -37,3 +37,9 @@ include = [
 [tool.hatch.version]
 source = "code"
 path = "./__version__.py"
+
+[dependency-groups]
+dev = [
+    "pytest-it>=0.1.5",
+    "pytest-vcr>=1.0.2",
+]
