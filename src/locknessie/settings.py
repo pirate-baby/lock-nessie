@@ -41,6 +41,7 @@ class ConfigSettings(BaseSettings):
     openid_issuer: OpenIDIssuer = Field(..., description="The issuer of the OpenID client")
     openid_client_id: str = Field(..., description="The client ID of the OpenID client")
     openid_tenant: Optional[str] = Field(None, description="The tenant of the OpenID client")
+    openid_secret: Optional[str] = Field(None, description="The secret of the OpenID client, used for daemon auth")
     openid_realm: Optional[str] = Field(None, description="The realm of the OpenID client")
     openid_url: Optional[str] = Field(None, description="The URL of the OpenID provider")
 
