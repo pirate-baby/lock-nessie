@@ -4,6 +4,7 @@ import signal
 from typing import TYPE_CHECKING
 import multiprocessing
 import click
+from pydantic import ValidationError
 import uvicorn
 from locknessie.settings import safely_get_settings, OpenIDIssuer, NoConfigError, get_config_path
 import functools
@@ -48,6 +49,7 @@ def _stop_server(pid: int, sig: int):
     """Stop the HTTP service."""
     os.kill(pid, sig)
 
+
 @click.group()
 def cli():
     """Lock Nessie CLI"""
@@ -88,6 +90,23 @@ def catch_noconfigerror(f):
         except NoConfigError as e:
             click.secho(f"Error: {e}", fg="red", err=True)
             return
+    return wrapper
+
+def catch_invalid_config(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except ValidationError as e:
+            error_list = e.errors()
+            if error_list:
+                click.secho("Invalid or missing config values:", fg="red", err=True)
+                for err in error_list:
+                    loc = ".".join(str(x) for x in err.get("loc", []))
+                    msg = err.get("msg", "Unknown error")
+                    click.secho(f"  - {loc}: {msg}", fg="yellow", err=True)
+            else:
+                click.secho(f"Error: {e}", fg="red", err=True)
     return wrapper
 
 @config.command()
@@ -151,7 +170,6 @@ def stop(ctx, kill: bool):
     _stop_server(pid, sig)
     click.echo(f"HTTP service {sig_enum} stop signal sent")
 
-default_token_ctx_msg = "Manage OpenID tokens."
 @cli.group()
 @add_config_options
 @click.pass_context
@@ -162,6 +180,7 @@ def token(ctx, **kwargs):
 @token.command()
 @click.pass_context
 @catch_noconfigerror
+@catch_invalid_config
 def show(ctx):
     """Show the active OpenID bearer token."""
     from locknessie.main import LockNessie
