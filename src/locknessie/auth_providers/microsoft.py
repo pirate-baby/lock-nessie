@@ -12,8 +12,7 @@ settings = safely_get_settings()
 logger = get_logger(__name__)
 
 class MicrosoftAuth(AuthBase):
-
-    scopes: list[str] = ["User.Read"]
+    scopes: list[str]
     cache_file_name: str = "microsoft/cache.bin"
     cache_file: "Path"
     account: "msal.Account"
@@ -28,10 +27,14 @@ class MicrosoftAuth(AuthBase):
         super().__init__(auth_type)
         self.cache = None
         if self.auth_type == AuthType.user:
+            self.scopes = ["User.Read"]
             self.cache_file = self.initilaize_cache_file(self.cache_file_name)
             self.cache = self._load_cache(self.cache_file)
-        if self.auth_type == AuthType.daemon:
+        elif self.auth_type == AuthType.daemon:
+            self.scopes = ["https://graph.microsoft.com/.default"]
             assert settings.openid_secret, "OpenID secret is required for daemon auth"
+        else:
+            raise ValueError(f"Invalid auth type: {self.auth_type}")
 
         self.app = self._get_app(self.cache)
         self.account = self._get_client_id_account(self.app)
@@ -41,7 +44,7 @@ class MicrosoftAuth(AuthBase):
         return self._get_token()
 
     def initilaize_cache_file(self, cache_file_name: str) -> "Path":
-        cache_file = settings.env.config_path / cache_file_name
+        cache_file = settings.config_dir / cache_file_name
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         return cache_file
 
@@ -60,7 +63,7 @@ class MicrosoftAuth(AuthBase):
             case AuthType.daemon:
                 return msal.ConfidentialClientApplication(
                     client_id=settings.openid_client_id,
-                    client_credential=settings.openid_client_secret,
+                    client_credential=settings.openid_secret,
                     authority=f"https://login.microsoftonline.com/{settings.openid_tenant}"
                 )
             case AuthType.user:

@@ -5,13 +5,48 @@ from typing import TYPE_CHECKING
 import multiprocessing
 import click
 import uvicorn
-from locknessie.settings import EnvSettings, ConfigSettings, OpenIDIssuer, NoConfigError
+from locknessie.settings import safely_get_settings, OpenIDIssuer, NoConfigError, get_config_path
 import functools
+from locknessie.settings import ConfigSettings
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-env_settings = EnvSettings()
+def add_config_options(command):
+    for field_name, field in ConfigSettings.model_fields.items():
+        if field_name == "config_path":
+            continue
+        option_name = f"--{field_name.replace('_', '-')}"
+        option_kwargs = {"default": None, "help": f"Config option for {field_name}"}
+        if hasattr(field, 'annotation'):
+            option_kwargs["type"] = field.annotation if field.annotation in [int, str, bool] else str
+        command = click.option(option_name, **option_kwargs)(command)
+    return command
+
+def _filter_none_kwargs(kwargs):
+    return {k: v for k, v in kwargs.items() if v is not None}
+
+def _sync_config_settings(initial_config_dict: dict, config_file: "Path") -> None:
+    """round-about way to populate the config defaults to make user input easier
+    by exposing them in the config file.
+
+    Args:
+        initial_config_dict: the required values that the config object needs to be populated with
+        config_file: the path to the config file to be written to
+    """
+    config_file.write_text(json.dumps(initial_config_dict, indent=4))
+    synced_config_settings = ConfigSettings().model_dump()
+    del synced_config_settings["env"]
+    config_file.write_text(json.dumps(synced_config_settings, indent=4))
+
+def _start_server(port: int, host: str):
+    """Start the HTTP service."""
+    from locknessie.server import app
+    uvicorn.run(app, host=host, port=port)
+
+def _stop_server(pid: int, sig: int):
+    """Stop the HTTP service."""
+    os.kill(pid, sig)
 
 @click.group()
 def cli():
@@ -24,24 +59,26 @@ def config():
 @config.command()
 def init():
     """Initialize a new config file"""
-    config_file = env_settings.config_path / "config.json"
     config_dict = {}
-    click.echo(f"Initializing new config file at {config_file}")
-
-    if config_file.exists():
-        click.echo(f"Config file already exists at {config_file}")
+    config_path = get_config_path()
+    if config_path.exists():
+        click.echo(f"Config file already exists at {config_path}")
         return
-    config_file.parent.mkdir(parents=True, exist_ok=True)
+    config_path.parent.mkdir(parents=True, exist_ok=True)
 
+    config_path["config_dir"] = config_path.parent
     config_dict["openid_issuer"] = click.prompt("Which OpenID provider are you using?", type=click.Choice([v.value for v in OpenIDIssuer]))
     match config_dict["openid_issuer"]:
         case OpenIDIssuer.microsoft:
             config_dict["openid_client_id"] = click.prompt("What is your Microsoft client ID?", type=str)
+            if click.prompt("Do you want to set daemon auth? (y/n)", type=click.Choice(["y", "n"])) == "y":
+                config_dict["openid_secret"] = click.prompt("What is your Microsoft Application secret?", type=str)
+                config_dict["openid_tenant"] = click.prompt("What is your Microsoft tenant ID?", type=str)
         case _:
             click.secho("That provider is not supported yet", fg="red", err=True)
             return
-    _ = _sync_config_settings(config_dict, config_file)
-    click.echo(f"Config file initialized at {config_file}. See {config_file} to modify or update the configurations.")
+    _ = _sync_config_settings(config_dict, config_path)
+    click.echo(f"Config file initialized at {config_path}.")
 
 def catch_noconfigerror(f):
     @functools.wraps(f)
@@ -59,36 +96,37 @@ def catch_noconfigerror(f):
 @catch_noconfigerror
 def set(key: str, value: str):
     """Set a config value"""
-    config_file = env_settings.config_path / "config.json"
-    config_settings = ConfigSettings()
+    config_settings = safely_get_settings()
     try:
         setattr(config_settings, key, value)
     except AttributeError:
         click.echo(f"Invalid config key: {key}")
         return
-    _ = _sync_config_settings(config_settings.model_dump(), config_file)
-    click.echo(f"Config file updated at {config_file}. See {config_file} to modify or update the configurations.")
+    _ = _sync_config_settings(config_settings.model_dump(), config_settings)
+    click.echo(f"Config file updated at {config_settings.config_path}.")
+
 
 @cli.group()
+@add_config_options
 @click.pass_context
-def service(ctx):
+def service(ctx, **kwargs):
     """Manage the Lock Nessie HTTP service."""
-    ctx.obj = ConfigSettings()
+    ctx.obj = _filter_none_kwargs(kwargs)
 
 @service.command()
-@click.option("--port", type=int, default=None, help="The port to run the HTTP service on")
-@click.option("--host", type=str, default=None, help="The host to run the HTTP service on")
 @click.option("--daemon", is_flag=True, help="Run the HTTP service as a daemon")
-@click.pass_obj
+@click.pass_context
 @catch_noconfigerror
-def start(config_settings, port: int, host: str, daemon: bool):
+def start(ctx, daemon):
     """Start the HTTP service."""
-    port = port or config_settings.auth_callback_port
-    host = host or config_settings.auth_callback_host
+    config_kwargs = ctx.obj or {}
+    config_settings = ConfigSettings(**config_kwargs)
+    port = config_settings.auth_callback_port
+    host = config_settings.auth_callback_host
     if daemon:
         process = multiprocessing.Process(target=_start_server, args=(port, host))
         pid = process.start()
-        pid_cache = env_settings.config_path / "pid"
+        pid_cache = config_settings.config_path / "pid"
         pid_cache.write_text(str(pid))
         click.echo(f"HTTP service started on {host}:{port} with PID {pid}")
     else:
@@ -96,14 +134,15 @@ def start(config_settings, port: int, host: str, daemon: bool):
 
 @service.command()
 @click.option("--kill", is_flag=True, help="Send a SIGKILL signal to the HTTP service. Useful if the server refuses to stop.")
-@click.pass_obj
+@click.pass_context
 @catch_noconfigerror
-def stop(config_settings, kill: bool):
+def stop(ctx, kill: bool):
     """Stop the HTTP service."""
-    _ = config_settings
+    config_kwargs = ctx.obj or {}
+    config_settings = ConfigSettings(**config_kwargs)
     sig_enum = "SIGKILL" if kill else "SIGINT"
     sig = getattr(signal, sig_enum)
-    pid_cache = env_settings.config_path / "pid"
+    pid_cache = config_settings.config_path / "pid"
     if not pid_cache.exists():
         click.echo("HTTP service is not running")
         return
@@ -112,41 +151,25 @@ def stop(config_settings, kill: bool):
     _stop_server(pid, sig)
     click.echo(f"HTTP service {sig_enum} stop signal sent")
 
+default_token_ctx_msg = "Manage OpenID tokens."
 @cli.group()
-def token():
+@add_config_options
+@click.pass_context
+def token(ctx, **kwargs):
     """Manage OpenID tokens."""
+    ctx.obj = _filter_none_kwargs(kwargs)
 
 @token.command()
+@click.pass_context
 @catch_noconfigerror
-def show():
+def show(ctx):
     """Show the active OpenID bearer token."""
     from locknessie.main import LockNessie
+    config_kwargs = ctx.obj or {}
+    settings = ConfigSettings(**config_kwargs)
+    import locknessie.settings as settings_mod
+    settings_mod.settings = settings
     token = LockNessie().get_token()
     click.echo(token)
 
 
-def _sync_config_settings(initial_config_dict: dict, config_file: "Path") -> None:
-    """round-about way to populate the config defaults to make user input easier
-    by exposing them in the config file.
-
-    Args:
-        initial_config_dict: the required values that the config object needs to be populated with
-        config_file: the path to the config file to be written to
-    """
-    config_file.write_text(json.dumps(initial_config_dict, indent=4))
-    # read back with all the defaults
-    synced_config_settings = ConfigSettings().model_dump()
-    # get rid of env vars
-    del synced_config_settings["env"]
-    # write back with all the defaults to the config file
-    config_file.write_text(json.dumps(synced_config_settings, indent=4))
-
-
-def _start_server(port: int, host: str):
-    """Start the HTTP service."""
-    from locknessie.server import app
-    uvicorn.run(app, host=host, port=port)
-
-def _stop_server(pid: int, sig: int):
-    """Stop the HTTP service."""
-    os.kill(pid, sig)

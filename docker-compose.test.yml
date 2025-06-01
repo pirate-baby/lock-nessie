@@ -60,5 +60,4 @@ services:
       - ./src:/app/src
       - ./tests:/app/tests
     environment:
-      - LOCKNESSIE_OPENID_TENANT_ID=${LOCKNESSIE_OPENID_TENANT}
-      - LOCKNESSIE_OPENID_CLIENT_ID=${LOCKNESSIE_OPENID_CLIENT_ID}
+      - LOCKNESSIE_ENVIRONMENT=development
