@@ -138,6 +138,8 @@ def set(key: str, value: str):
 def service(ctx, **kwargs):
     """Manage the Lock Nessie HTTP service."""
     ctx.obj = _filter_none_kwargs(kwargs)
+    raise NotImplementedError(("Service will allow polling to auth tools like Dremio. "
+                              "Sevice implementation is not yet complete, stay tuned!"))
 
 @service.command()
 @click.option("--daemon", is_flag=True, help="Run the HTTP service as a daemon")

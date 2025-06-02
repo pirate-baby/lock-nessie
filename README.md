@@ -1,81 +1,181 @@
 # Lock Nessie
 
-<div align="center">
-    <img src="src/server/static/logo.png" width="300" alt="logo"/>
-</div>
+**Easily integrate OpenID authentication and authorization into your Apache Nessie and Iceberg projects.**
 
-_Quickly and simply add OpenID auth to your Iceberg Nessie tools._
+Lock Nessie is a drop-in tool that handles OpenID RBAC for you, so you don't have to roll your own. It works for both interactive users (scripts, Jupyter notebooks) and service accounts (ETL, headless/daemon jobs), making it simple to get and refresh tokens for your Nessie metadata server.
 
-OpenID auth requires a flow to facilitiate the login to get access and refresh tokens, a way to distribute that access token to the services that need it (such as your Juypter notebook code, Dremio instance etc), and a process to automatically refresh the token when it exipires. This process is what `locknessie` does.
+---
 
-# Installation
-- `pip install locknessie[<provider>]`
-- `uv add locknessie[<provider>]`
+## Features
 
-You'll need to install the provider required for Nessie authentication - such as `microsoft` if your Nessie uses Microsoft Entra OpenID for auth, `keycloak` etc.
+- **Drop-in OpenID Auth for Nessie/Iceberg**: No need to implement RBAC yourself.
+- **CLI and Python Module**: Use from the command line or directly in your code.
+- **Supports User and Daemon Auth**: Interactive browser login or headless service account flows.
+- **Easy Configuration**: One-time setup, then use everywhere.
 
-There is also a docker image:
-```bash
-docker run --rm --env-file .env -p 8080:8080 ghcr.io/pirate-baby/locknessie:microsoft-latest
-```
+---
 
-`locknessie` has both CLI and module components, and they can be used in conjunction with one another.
+## Installation
 
-## CLI
-
-for a list of commands and help text run
+You can install Lock Nessie using either `pip` or [`uv`](https://github.com/astral-sh/uv):
 
 ```bash
-> locknessie --help
+# With pip
+pip install locknessie[microsoft]
+
+# Or with uv (faster alternative to pip)
+uv pip install locknessie[microsoft]
+
+# For other providers in the future
+# pip install locknessie[keycloak]
+# uv pip install locknessie[keycloak]
 ```
-When you first install `locknessie` you need to run `locknessie config init` to set up the configuration. Locknessie will ask you for information required for your provider and store it in a config file (located by default at `~/.locknessie/config.json`). You can manually edit any of the settings there, or use `locknessie config set <setting> <setting-value>`.
 
-Once configured, you can initialize auth and get a bearer token with `locknessie token show`. If this is your first time logging in, a browser window will open automatically for you to authorize with the provider (microsoft, google, keycloak etc). **Note**: if you are running in a browserless environment (such as a docker container) then locknessie will print the login URL into the console logs where you can copy it from and paste into your browser of choice. Once you have aproved the auth, locknessie will print the bearer token into the logs - this token can now be used in your Nessie requests.
+---
 
-If you run `locknessie token show` again, you will see it returns the same token (or a new one once that token expires) without opening a browser window. The token refresh cycle is now in place, and locknessie will use a refresh token behind the scenes to always return you a valid token.
+## Quickstart
 
-## Module
+### 1. Configure Lock Nessie
 
-Typically you will need to access this bearer token in code. Once `locknessie` has been initialized with your authentication you can easily access the tokens via module:
+Run the following to set up your config file (by default at `~/.locknessie/config.json`):
+
+```bash
+locknessie config init
+```
+
+You'll be prompted for your OpenID provider and credentials (e.g., Microsoft client ID, secret & tenant for daemon auth).
+
+You can update settings later if needed:
+
+```bash
+locknessie config set <key> <value>
+```
+
+or by editing the file directly.
+
+---
+
+### 2. Get a Token (CLI)
+
+Get a valid OpenID bearer token for your Nessie server:
+
+```bash
+locknessie token show
+```
+
+- The first time, you'll be prompted to log in via browser (for user auth).
+- For daemon/service accounts, set up your secret and tenant during config.
+
+This is all the setup you need. The refresh token is stored locally, and the cycle can now run as long as the provider's refresh token is valid. When the refresh token expires you will be prompted to log in via browser again.
+
+> [!Note]
+> If you are running locknessie in a container, the url for the browser login will be
+> printed into the container logs. Make sure the auth_callback_port is exposed or locknessie will not be able to complete the auth flow and log you in.
+
+---
+
+### 3. Use in Python Scripts
 
 ```python
-
 from locknessie.main import LockNessie
-from pyiceberg.catalog import load_catalog
 
-# this will return a new valid token, refreshed if needed.
+# Get a valid token (auto-refreshes as needed)
 token = LockNessie().get_token()
+
+# Use with your Nessie/Iceberg client
+from pyiceberg.catalog import load_catalog
 
 catalog = load_catalog(
     "nessie",
-    uri= "https://your-nessie-instance.com/iceberg/main/",
+    uri="https://your-nessie-instance.com/iceberg/main/",
     token=token
 )
-
-namespaces = catalog.list_namespaces()
 ```
 
-## Hashicorp Vault impersonation
-Dremio (and possibly other tools) will source an auth token from a Hashicorp Vault secret; for local use, `locknessie` exposes an API endpoint that will mimic vault and allow Dremio to authenticate using your existing OpenID token. Once you have initialized the token exchange, run `locknessie service start -d` to spin up the endpoint. When you are done with the endpoint, you can spin it down with `locknessie service stop`. The default host for the vault endpoint will be `http://localhost:8200`.
+---
 
-### Envars:
-Required for all providers:
-- `LOCKNESSIE_OPENID_ISSUER`: The issuer of the OpenID client, one of:
-    - `microsoft` # entra
-    - `keycloak`
+### 4. Headless/Daemon Auth
 
-- `LOCKNESSIE_OPENID_CLIENT_ID`: The client ID of the OpenID client
+To use Lock Nessie in headless or daemon mode (for service accounts, ETL jobs, CI/CD, etc.), you **must provide an OpenID secret** from your authentication provider (such as Microsoft or Keycloak). This secret is required for non-interactive authentication and can be set in any of the following ways:
 
-Required for `microsoft`:
-- `LOCKNESSIE_OPENID_CLIENT_ID`: The tenant of the OpenID client (required for Microsoft)
+- **CLI**: During `locknessie config init` or with `locknessie config set openid_secret <your-secret>`
+- **Config file**: Add `"openid_secret": "<your-secret>"` to your config JSON
+- **Environment variable**: Set `LOCKNESSIE_OPENID_SECRET=<your-secret>`
 
-Required for `keycloak`:
-- `LOCKNESSIE_OPENID_REALM`: The realm of the OpenID client (required for Keycloak)
-- `LOCKNESSIE_OPENID_URL`: The URL of the OpenID provider
+You will also need to provide any other required settings for your provider (e.g., `LOCKNESSIE_OPENID_TENANT` for Microsoft).
 
-## Client integrations
+Once configured, you can use the CLI or Python module as shown above, and Lock Nessie will use the daemon/service account flow to obtain tokens without requiring browser interaction.
 
-## Hashicorp Vault impersonation
+---
 
+## Configuration & Environment Variables
 
-## Dremio
+You can set any Lock Nessie configuration value in **three ways**:
+
+1. **CLI Argument**: Pass as a command-line argument (e.g., `--auth-callback-port 4321`).
+2. **Environment Variable**: Set with the `LOCKNESSIE_` prefix (e.g., `LOCKNESSIE_AUTH_CALLBACK_PORT=4321`).
+3. **Config File**: Edit the config file directly (default: `~/.locknessie/config.json`) or use the CLI tool (e.g., `locknessie config set auth_callback_port 4321`).
+
+**Order of evaluation (highest priority first):**
+
+1. CLI argument (e.g., `locknessie token show --auth-callback-port 4321`)
+2. Environment variable (e.g., `LOCKNESSIE_AUTH_CALLBACK_PORT=4321 locknessie token show`)
+3. Config file (manually edit or use `locknessie config set`)
+
+All config values can be set using any of these methods, and Lock Nessie will use the highest-priority value found.
+
+**Required for all providers:**
+
+- `LOCKNESSIE_OPENID_ISSUER`: The OpenID provider (`microsoft`, `keycloak`)
+- `LOCKNESSIE_OPENID_CLIENT_ID`: The client/application ID
+
+**Microsoft-specific:**
+
+- `LOCKNESSIE_OPENID_TENANT`: Tenant ID (required for daemon/service auth)
+- `LOCKNESSIE_OPENID_SECRET`: Application secret (required for daemon/service auth)
+
+**Keycloak (future):**
+
+- `LOCKNESSIE_OPENID_REALM`: Keycloak realm
+- `LOCKNESSIE_OPENID_URL`: Keycloak server URL
+
+**Other settings:**
+
+- `LOCKNESSIE_CONFIG_PATH`: Path to config file (default: `~/.locknessie/config.json`)
+- `LOCKNESSIE_AUTH_CALLBACK_PORT`: Port for browser-based auth (default: 1234)
+- `LOCKNESSIE_IMPERSONATION_PORT`: Port for Vault impersonation service (default: 8200)
+- `LOCKNESSIE_AUTH_CALLBACK_HOST`: Host for callback server (default: `0.0.0.0`)
+
+---
+
+## CLI Reference
+
+- `locknessie config init` — Initialize config file
+- `locknessie config set <key> <value>` — Set a config value
+- `locknessie token show` — Print a valid OpenID token
+
+---
+
+## Use Cases
+
+- **Jupyter notebooks**: Authenticate and use Nessie/Iceberg with one line.
+- **ETL/Service jobs**: Headless daemon/service account auth with environment variables.
+
+---
+
+## Provider Support
+
+- **Microsoft Entra/Azure AD**: Supported (user and daemon/service flows)
+- **Keycloak**: Coming soon
+
+---
+
+## Contributing
+
+PRs and issues welcome!
+
+---
+
+## License
+
+MIT
