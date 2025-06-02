@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 import os
 import signal
 from typing import TYPE_CHECKING
@@ -35,10 +36,14 @@ def _sync_config_settings(initial_config_dict: dict, config_file: "Path") -> Non
         initial_config_dict: the required values that the config object needs to be populated with
         config_file: the path to the config file to be written to
     """
+    # hack to deal with serialization issues
+    for key, value in initial_config_dict.items():
+        if isinstance(value, Path):
+            initial_config_dict[key] = str(value.absolute())
+
     config_file.write_text(json.dumps(initial_config_dict, indent=4))
-    synced_config_settings = ConfigSettings().model_dump()
-    del synced_config_settings["env"]
-    config_file.write_text(json.dumps(synced_config_settings, indent=4))
+    synced_config_settings = safely_get_settings().model_dump_json(indent=4)
+    config_file.write_text(synced_config_settings)
 
 def _start_server(port: int, host: str):
     """Start the HTTP service."""
@@ -68,7 +73,8 @@ def init():
         return
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
-    config_path["config_dir"] = config_path.parent
+    config_dict["config_path"] = config_path
+    config_dict["config_dir"] = config_path.parent
     config_dict["openid_issuer"] = click.prompt("Which OpenID provider are you using?", type=click.Choice([v.value for v in OpenIDIssuer]))
     match config_dict["openid_issuer"]:
         case OpenIDIssuer.microsoft:
@@ -105,6 +111,7 @@ def catch_invalid_config(f):
                     loc = ".".join(str(x) for x in err.get("loc", []))
                     msg = err.get("msg", "Unknown error")
                     click.secho(f"  - {loc}: {msg}", fg="yellow", err=True)
+                click.echo("If using the CLI or browser auth, please run `locknessie config init` to initialize the config file.")
             else:
                 click.secho(f"Error: {e}", fg="red", err=True)
     return wrapper
@@ -121,7 +128,7 @@ def set(key: str, value: str):
     except AttributeError:
         click.echo(f"Invalid config key: {key}")
         return
-    _ = _sync_config_settings(config_settings.model_dump(), config_settings)
+    _ = _sync_config_settings(config_settings.model_dump(), config_settings.config_path)
     click.echo(f"Config file updated at {config_settings.config_path}.")
 
 
@@ -185,7 +192,7 @@ def show(ctx):
     """Show the active OpenID bearer token."""
     from locknessie.main import LockNessie
     config_kwargs = ctx.obj or {}
-    settings = ConfigSettings(**config_kwargs)
+    settings = safely_get_settings(**config_kwargs)
     import locknessie.settings as settings_mod
     settings_mod.settings = settings
     token = LockNessie().get_token()

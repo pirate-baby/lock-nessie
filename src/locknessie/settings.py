@@ -19,6 +19,7 @@ class OpenIDIssuer(str, Enum):
     keycloak = "keycloak"
 
 def get_config_path(config_path: Optional[Union[Path, str]] = None) -> Path:
+    """gets the config _json file_ full path"""
     if config_path:
         logger.debug(f"Using config path from CLI: {config_path}")
         config_path = Path(config_path)
@@ -27,10 +28,13 @@ def get_config_path(config_path: Optional[Union[Path, str]] = None) -> Path:
         logger.debug(f"Using config path from env: {from_env}")
         config_path = Path(from_env)
     else:
-        logger.debug("Using default config path: ~/.locknessie")
-        config_path = Path.home() / ".locknessie"
-
+        logger.debug("Using default config path: ~/.locknessie/config.json")
+        config_path = Path.home() / ".locknessie" / "config.json"
+    assert not config_path.is_dir(), "Config path must be a file, not a directory"
+    assert config_path.suffix == ".json", "Config path must be a JSON file"
     return config_path
+
+
 
 class ConfigSettings(BaseSettings):
     """settings derived from the cli, envars, and config file"""
@@ -54,7 +58,7 @@ class ConfigSettings(BaseSettings):
         return (
             init_settings,  # CLI args
             env_settings,   # Environment variables
-            JsonConfigSettingsSource(settings_cls, init_settings.init_kwargs["config_path"]),  # Config file
+            JsonConfigSettingsSource(settings_cls, init_settings.init_kwargs["config_path"]),  # recursively load config file
         )
 
     config_path: Path
@@ -94,6 +98,5 @@ def safely_get_settings(config_path: Optional[Union[Path, str]] = None,
             ) from e
 
     config_path = get_config_path(config_path)
-
     return ConfigSettings(config_path=config_path, **kwargs)
 
