@@ -36,6 +36,7 @@ coverage.xml
 
 # Local development settings
 .env
+**/test_secrets.yml
 .env.local
 .env.*.local
 
