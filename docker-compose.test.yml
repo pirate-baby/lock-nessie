@@ -1,14 +1,4 @@
 services:
-
-  dremio:
-    image: dremio/dremio-oss:latest
-    ports:
-      - 9047:9047
-      - 31010:31010
-      - 32010:32010
-    environment:
-      - DREMIO_JAVA_SERVER_EXTRA_OPTS=-Dpaths.dist=file:///opt/dremio/data/dist
-    container_name: dremio
   nessie:
     image: ghcr.io/projectnessie/nessie:0.104.1
     container_name: nessie
@@ -25,6 +15,7 @@ services:
       - nessie.catalog.secrets.access-key.name=admin
       - nessie.catalog.secrets.access-key.secret=password
       - nessie.catalog.service.s3.default-options.region=us-east-1
+      # auth bits
       - nessie.server.authentication.enabled=true
       - quarkus.oidc.auth-server-url=https://login.microsoftonline.com/${LOCKNESSIE_OPENID_TENANT}/v2.0
       - quarkus.oidc.client-id=${LOCKNESSIE_OPENID_CLIENT_ID}
