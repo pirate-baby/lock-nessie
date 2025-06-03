@@ -17,15 +17,16 @@ class NoConfigError(Exception):
 class Environment(str, Enum):
     release = "release" # code that is read-only and published in a release
     development = "development" # code that is being actively developed
+    production = "release" # legacy value for backwards compatibility
 
     def __eq__(self, other):
         """legacy support for the value `production` which is confusing to users"""
         if isinstance(other, str):
             if self is Environment.release and other == "production":
                 return True
-            return str(self) == other
+            return str(self.value) == other
         if isinstance(other, Environment):
-            return str(self) == str(other)
+            return str(self.value) == str(other.value)
         return NotImplemented
 
 class OpenIDIssuer(str, Enum):
@@ -97,6 +98,13 @@ class ConfigSettings(BaseSettings):
     def set_config_dir_from_path(cls, values):
         if values.get("config_path") and not values.get("config_dir"):
             values["config_dir"] = Path(values["config_path"]).parent
+        return values
+
+    @model_validator(mode="before")
+    def normalize_environment(cls, values):
+        env = values.get("environment")
+        if env == "production":
+            values["environment"] = "release"
         return values
 
 def safely_get_settings(config_path: Optional[Union[Path, str]] = None,
