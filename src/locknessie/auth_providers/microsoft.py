@@ -1,13 +1,11 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional, TYPE_CHECKING
 import msal
 from locknessie.logger import get_logger
-from locknessie.settings import safely_get_settings
 from locknessie.auth_providers.base import AuthBase, AuthType
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-settings = safely_get_settings()
+    from locknessie.settings import ConfigSettings
 
 logger = get_logger(__name__)
 
@@ -20,11 +18,12 @@ class MicrosoftAuth(AuthBase):
     cache: "msal.SerializableTokenCache"
 
     def __init__(self,
+                 settings: "ConfigSettings",
                  auth_type: Optional[AuthType] = AuthType.user):
         """
         auth_type: the type of authentication to use - users can log in with a browser, daemons can use secret credentials.
         """
-        super().__init__(auth_type)
+        super().__init__(settings=settings, auth_type=auth_type)
         self.cache = None
         if self.auth_type == AuthType.user:
             self.scopes = ["User.Read"]
@@ -44,7 +43,7 @@ class MicrosoftAuth(AuthBase):
         return self._get_token()
 
     def initilaize_cache_file(self, cache_file_name: str) -> "Path":
-        cache_file = settings.config_dir / cache_file_name
+        cache_file = self.settings.config_dir / cache_file_name
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         return cache_file
 
@@ -62,15 +61,15 @@ class MicrosoftAuth(AuthBase):
         match self.auth_type:
             case AuthType.daemon:
                 return msal.ConfidentialClientApplication(
-                    client_id=settings.openid_client_id,
-                    client_credential=settings.openid_secret,
-                    authority=f"https://login.microsoftonline.com/{settings.openid_tenant}"
+                    client_id=self.settings.openid_client_id,
+                    client_credential=self.settings.openid_secret,
+                    authority=f"https://login.microsoftonline.com/{self.settings.openid_tenant}"
                 )
             case AuthType.user:
                 extra_args = {}
-                if not settings.openid_allow_all_tenants:
-                    extra_args["authority"] = f"https://login.microsoftonline.com/{settings.openid_tenant}"
-                return msal.PublicClientApplication(client_id=settings.openid_client_id,
+                if not self.settings.openid_allow_all_tenants:
+                    extra_args["authority"] = f"https://login.microsoftonline.com/{self.settings.openid_tenant}"
+                return msal.PublicClientApplication(client_id=self.settings.openid_client_id,
                                                     token_cache=cache,
                                                     **extra_args)
             case _:

@@ -19,7 +19,7 @@ class LockNessie:
         match self.settings.openid_issuer:
             case OpenIDIssuer.microsoft:
                 from locknessie.auth_providers.microsoft import MicrosoftAuth
-                return MicrosoftAuth(auth_type=auth_type)
+                return MicrosoftAuth(auth_type=auth_type, settings=self.settings)
             case _:
                 raise NotImplementedError("Not implemented")
 
