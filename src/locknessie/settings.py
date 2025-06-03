@@ -70,6 +70,7 @@ class ConfigSettings(BaseSettings):
     openid_secret: Optional[str] = Field(None, description="The secret of the OpenID client, used for daemon auth")
     openid_realm: Optional[str] = Field(None, description="The realm of the OpenID client")
     openid_url: Optional[str] = Field(None, description="The URL of the OpenID provider")
+    openid_allow_all_tenants: bool = Field(False, description="Whether to allow all tenants to be used for auth")
 
     # Secret settings
     secret_name: str = Field("token", description="The name of the secret to be retrieved")

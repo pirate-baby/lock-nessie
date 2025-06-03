@@ -9,5 +9,5 @@ COPY ./src /app/src
 COPY ./tests /app/tests
 COPY ./README.md /app/README.md
 WORKDIR /app/src
-RUN uv sync --extra microsoft --dev
+RUN uv sync --extra microsoft --extra keycloak --dev
 CMD ["uv", "run", "pytest", "--it", "../tests"]

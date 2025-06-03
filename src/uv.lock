@@ -295,6 +295,7 @@ dependencies = [
     { name = "jinja2" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "python-keycloak" },
     { name = "uvicorn" },
 ]
 
@@ -321,6 +322,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.11.4" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "python-keycloak", marker = "extra == 'keycloak'", specifier = ">=5.5.0" },
+    { name = "python-keycloak", extras = ["keycloak"], specifier = ">=5.5.0" },
     { name = "uvicorn", specifier = ">=0.27.1" },
 ]
 provides-extras = ["keycloak", "microsoft"]
