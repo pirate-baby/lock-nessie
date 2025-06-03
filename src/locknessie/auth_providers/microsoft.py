@@ -67,8 +67,12 @@ class MicrosoftAuth(AuthBase):
                     authority=f"https://login.microsoftonline.com/{settings.openid_tenant}"
                 )
             case AuthType.user:
+                extra_args = {}
+                if not settings.openid_allow_all_tenants:
+                    extra_args["authority"] = f"https://login.microsoftonline.com/{settings.openid_tenant}"
                 return msal.PublicClientApplication(client_id=settings.openid_client_id,
-                                                    token_cache=cache)
+                                                    token_cache=cache,
+                                                    **extra_args)
             case _:
                 raise ValueError(f"Invalid auth type: {self.auth_type}")
 
