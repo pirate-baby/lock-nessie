@@ -17,7 +17,7 @@ class TestProviders:
 
     @m.parametrize(
         "patched_settings_file",
-        [("microsoft", "user")],
+        [("microsoft", "user", {"openid_allow_all_tenants": True})],
         indirect=True
     )
     @m.context("and the user flow is selected")
