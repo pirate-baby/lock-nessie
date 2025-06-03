@@ -62,3 +62,16 @@ class TestSettings:
     def test_no_config_file(self, tmp_path):
         with pytest.raises(NoConfigError):
             safely_get_settings(config_path=tmp_path / "config.json")
+
+    def test_legacy_production_environment(self, tmp_path):
+        config_path = tmp_path / "config.json"
+        config_path.write_text(json.dumps({
+            "openid_issuer": "microsoft",
+            "openid_client_id": "1234567890",
+            "openid_tenant": "1234567890",
+            "openid_secret": "1234567890",
+        }))
+        from locknessie.settings import Environment
+        settings = safely_get_settings(config_path=config_path, environment="production")
+        assert settings.environment == Environment.release
+        assert settings.environment == "release"
