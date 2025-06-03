@@ -14,6 +14,20 @@ class NoConfigError(Exception):
     """exception raised when no config file is found"""
     pass
 
+class Environment(str, Enum):
+    release = "release" # code that is read-only and published in a release
+    development = "development" # code that is being actively developed
+
+    def __eq__(self, other):
+        """legacy support for the value `production` which is confusing to users"""
+        if isinstance(other, str):
+            if self is Environment.release and other == "production":
+                return True
+            return str(self) == other
+        if isinstance(other, Environment):
+            return str(self) == str(other)
+        return NotImplemented
+
 class OpenIDIssuer(str, Enum):
     microsoft = "microsoft"
     keycloak = "keycloak"
@@ -63,7 +77,7 @@ class ConfigSettings(BaseSettings):
 
     config_path: Path
     config_dir: Path = Field(..., description="The directory for the config file")
-    environment: str = Field(..., description="'production' for released code, 'development' for local development")
+    environment: Environment = Field(Environment.release, description="'release' for released code, 'development' for local development")
     openid_issuer: OpenIDIssuer = Field(..., description="The issuer of the OpenID client")
     openid_client_id: str = Field(..., description="The client ID of the OpenID client")
     openid_tenant: Optional[str] = Field(None, description="The tenant of the OpenID client")
