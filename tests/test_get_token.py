@@ -1,12 +1,13 @@
 from pytest import mark as m
-from unittest.mock import patch
 import re
+from pathlib import Path
 import importlib
 import sys
 import time
 import subprocess
 import textwrap
 import os
+from locknessie.settings import safely_get_settings
 
 login_url_regex = {
     "microsoft": r"https://login.microsoftonline.com/common/oauth2\S+",
@@ -30,8 +31,11 @@ class TestProviders:
         # Script to run in subprocess
         script = textwrap.dedent(f'''
             import importlib
+            from pathlib import Path
+            from locknessie.settings import safely_get_settings
             from locknessie.auth_providers.{provider} import {provider_class}
-            auth = {provider_class}(auth_type="{user_type}")
+            settings = safely_get_settings(config_path=Path("{config_path}"))
+            auth = {provider_class}(auth_type="{user_type}", settings=settings)
             auth.get_token()
         ''')
 
@@ -70,6 +74,7 @@ class TestProviders:
         module_path = f"locknessie.auth_providers.{provider}"
         module = importlib.import_module(module_path)
         ProviderClass = getattr(module, provider_class)
-        auth = ProviderClass(auth_type="daemon")
+        config_path = Path(config_path)
+        auth = ProviderClass(safely_get_settings(config_path=config_path), auth_type="daemon")
         token = auth.get_token()
         assert token is not None, "No token returned from daemon auth"

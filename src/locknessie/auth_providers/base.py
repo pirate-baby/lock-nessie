@@ -14,7 +14,8 @@ class AuthBase(ABC):
     _auth_type: AuthType
     settings: "ConfigSettings"
 
-    def __init__(self, settings: "ConfigSettings",
+    def __init__(self,
+                 settings: "ConfigSettings",
                  auth_type: Optional[AuthType] = AuthType.user):
         self._auth_type = auth_type
         self.settings = settings

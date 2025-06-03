@@ -23,7 +23,7 @@ class MicrosoftAuth(AuthBase):
         """
         auth_type: the type of authentication to use - users can log in with a browser, daemons can use secret credentials.
         """
-        super().__init__(auth_type, settings)
+        super().__init__(settings=settings, auth_type=auth_type)
         self.cache = None
         if self.auth_type == AuthType.user:
             self.scopes = ["User.Read"]
