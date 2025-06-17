@@ -113,7 +113,12 @@ class MicrosoftAuth(AuthBase):
             logger.info("token acquired")
             # user authed tokens will have an id_token, app (daemon) tokens will only have an access_token.
             # the user access_tokens do not validate, don't use them.
-            return result.get("id_token", result["access_token"])
+            try:
+                logger.info("id_token found, using it")
+                return result["id_token"]
+            except KeyError:
+                logger.warning("no id_token found, using access_token")
+                return result["access_token"]
         msg = result.get("error_description", "Authentication failed with an unknown error")
         raise ValueError(msg)
 
