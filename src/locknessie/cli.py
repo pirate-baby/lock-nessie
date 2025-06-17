@@ -211,4 +211,4 @@ def validate(ctx):
     except (ValueError, jwt.exceptions.InvalidSignatureError, jwt.exceptions.InvalidTokenError, jwt.exceptions.InvalidAlgorithmError) as e:
         click.secho(f"Token is invalid: {e}", fg="red", err=True)
     else:
-        click.echo("Token is valid")
+        click.secho("Token is valid", fg="green")

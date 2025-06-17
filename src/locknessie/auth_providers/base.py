@@ -11,13 +11,13 @@ if TYPE_CHECKING:
 class AuthType(str, Enum):
     user = "user"
     daemon = "daemon"
-    algorithm = "RS256"
 
 
 class AuthBase(ABC):
     _auth_type: AuthType
     settings: "ConfigSettings"
     auth_roles_claim: str = "groups"
+    algorithm: str = "RS256"
 
     def __init__(self,
                  settings: "ConfigSettings",
@@ -47,7 +47,6 @@ class AuthBase(ABC):
             InvalidAlgorithmError: if the token algorithm is invalid
         """
 
-
         key = self._get_jwk(token)
         token = jwt.decode(token, key=key, algorithms=[self.algorithm], options={"verify_signature": True})
         if self.auth_roles_claim not in token:
@@ -63,9 +62,22 @@ class AuthBase(ABC):
                 issuer = jwt.decode(token, algorithms=[self.algorithm], options={"verify_signature": False})["iss"]
             except KeyError:
                 raise ValueError(f"Token does not contain {self.auth_type} issuer OR jwks_uri, one is required for {self.auth_type} auth")
-            jwks_uri = f"{issuer}/.well-known/openid-configuration/jwks"
-        jwks = requests.get(jwks_uri).json()
+            explorer_uri = f"{issuer}/.well-known/openid-configuration"
+            server_config = self._get_json_or_raise(requests.get(explorer_uri))
+            try:
+                jwks_uri = server_config["jwks_uri"]
+            except KeyError:
+                raise ValueError("Server explorer endpoint does not return a jwks_uri")
+
+        jwks = self._get_json_or_raise(requests.get(jwks_uri))
         for key in jwks["keys"]:
             if key["kid"] == header["kid"]:
                 return jwt.algorithms.RSAAlgorithm.from_jwk(key)
         raise ValueError(f"No matching jwk found for token")
+
+    def _get_json_or_raise(self, response: requests.Response) -> dict:
+        assert response.status_code == 200, f"Failed to get json from {response.url}, status code: {response.status_code}"
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError as e:
+            raise ValueError(f"unable to decode json from {response.url}: {e}. This is likely due to a bad url or a malformed response from the auth provider.")
