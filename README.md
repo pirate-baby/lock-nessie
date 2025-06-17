@@ -1,6 +1,6 @@
 # Lock Nessie
 
-**Easily integrate OpenID authentication and authorization into your Apache Nessie and Iceberg projects.**
+**Easily integrate OpenID authentication and authorization into your Nessie and Apache Iceberg projects.**
 
 Lock Nessie is a drop-in tool that handles OpenID RBAC for you, so you don't have to roll your own. It works for both interactive users (scripts, Jupyter notebooks) and service accounts (ETL, headless/daemon jobs), making it simple to get and refresh tokens for your Nessie metadata server.
 
