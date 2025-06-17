@@ -15,6 +15,7 @@ dependencies = [
     "click>=8.1.7",
     "uvicorn>=0.27.1",
     "jinja2>=3.1.6",
+    "pyjwt>=2.10.1",
 ]
 
 [project.scripts]

@@ -26,3 +26,7 @@ class LockNessie:
     def get_token(self) -> str:
         """returns the authed/updated bearer token to be used for the OpenID connection"""
         return self.provider.get_token()
+
+    def validate_token(self) -> None:
+        """validate the active OpenID bearer token"""
+        self.provider.validate_token()

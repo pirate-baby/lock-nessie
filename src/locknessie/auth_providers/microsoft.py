@@ -16,6 +16,7 @@ class MicrosoftAuth(AuthBase):
     account: "msal.Account"
     app: "msal.PublicClientApplication"
     cache: "msal.SerializableTokenCache"
+    auth_roles_claim: str = "roles"
 
     def __init__(self,
                  settings: "ConfigSettings",
@@ -26,11 +27,11 @@ class MicrosoftAuth(AuthBase):
         super().__init__(settings=settings, auth_type=auth_type)
         self.cache = None
         if self.auth_type == AuthType.user:
-            self.scopes = ["User.Read"]
+            self.scopes = ["user.Read"]
             self.cache_file = self.initilaize_cache_file(self.cache_file_name)
             self.cache = self._load_cache(self.cache_file)
         elif self.auth_type == AuthType.daemon:
-            self.scopes = ["https://graph.microsoft.com/.default"]
+            self.scopes = [f"{self.settings.openid_client_id}/.default"]
             assert settings.openid_secret, "OpenID secret is required for daemon auth"
         else:
             raise ValueError(f"Invalid auth type: {self.auth_type}")
@@ -110,7 +111,9 @@ class MicrosoftAuth(AuthBase):
     def _extract_token_from_result(self, result: dict) -> str:
         if "access_token" in result:
             logger.info("token acquired")
-            return result["access_token"]
+            # user authed tokens will have an id_token, app (daemon) tokens will only have an access_token.
+            # the user access_tokens do not validate, don't use them.
+            return result.get("id_token", result["access_token"])
         msg = result.get("error_description", "Authentication failed with an unknown error")
         raise ValueError(msg)
 

@@ -1,41 +1,4 @@
 services:
-  nessie:
-    image: ghcr.io/projectnessie/nessie:0.104.1
-    container_name: nessie
-    ports:
-      - "19120:19120"
-    environment:
-      - nessie.version.store.type=IN_MEMORY
-      - nessie.catalog.default-warehouse=warehouse
-      - nessie.catalog.warehouses.warehouse.location=s3://locknessie-bucket/
-      - nessie.catalog.service.s3.default-options.endpoint=http://minio:9000/
-      - nessie.catalog.service.s3.default-options.access-key=urn:nessie-secret:quarkus:nessie.catalog.secrets.access-key
-      - nessie.catalog.service.s3.default-options.path-style-access=true
-      - nessie.catalog.service.s3.default-options.auth-type=STATIC
-      - nessie.catalog.secrets.access-key.name=admin
-      - nessie.catalog.secrets.access-key.secret=password
-      - nessie.catalog.service.s3.default-options.region=us-east-1
-      # auth bits
-      - nessie.server.authentication.enabled=true
-      - quarkus.oidc.auth-server-url=https://login.microsoftonline.com/${LOCKNESSIE_OPENID_TENANT}/v2.0
-      - quarkus.oidc.client-id=${LOCKNESSIE_OPENID_CLIENT_ID}
-  minio:
-    image: quay.io/minio/minio
-    container_name: minio
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=admin
-      - MINIO_ROOT_PASSWORD=password
-      - MINIO_REGION=us-east-1
-    entrypoint: >
-      /bin/sh -c "
-      minio server /data --console-address ':9001' &
-      sleep 10;
-      mc alias set myminio http://localhost:9000 admin password;
-      mc mb myminio/locknessie-bucket --ignore-existing;
-      tail -f /dev/null"
   testenv:
     image: locknessie-testenv
     build:
