@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import requests
 import jwt
-from jwt.jwk import jwk_from_dict
+
 from enum import Enum
 from typing import Optional, TYPE_CHECKING
 
@@ -33,7 +33,6 @@ class AuthBase(ABC):
     def get_token(self) -> str:
         pass
 
-    @abstractmethod
     def validate_token(self, token: Optional[str] = None) -> bool:
         token = token or self.get_token()
         return self._validate_token(token)
@@ -68,5 +67,5 @@ class AuthBase(ABC):
         jwks = requests.get(jwks_uri).json()
         for key in jwks["keys"]:
             if key["kid"] == header["kid"]:
-                return jwk_from_dict(key)
+                return jwt.algorithms.RSAAlgorithm.from_jwk(key)
         raise ValueError(f"No matching jwk found for token")

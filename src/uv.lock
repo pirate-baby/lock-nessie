@@ -296,6 +296,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyjwt" },
+    { name = "requests" },
     { name = "uvicorn" },
 ]
 
@@ -323,6 +324,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "pyjwt", specifier = ">=2.10.1" },
     { name = "python-keycloak", marker = "extra == 'keycloak'", specifier = ">=5.5.0" },
+    { name = "requests", specifier = ">=2.32.3" },
     { name = "uvicorn", specifier = ">=0.27.1" },
 ]
 provides-extras = ["keycloak", "microsoft"]
