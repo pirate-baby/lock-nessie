@@ -1,4 +1,5 @@
 import json
+import jwt
 from pathlib import Path
 import os
 import signal
@@ -9,6 +10,7 @@ from pydantic import ValidationError
 import uvicorn
 from locknessie.settings import safely_get_settings, OpenIDIssuer, NoConfigError, get_config_path
 import functools
+from locknessie.main import LockNessie
 from locknessie.settings import ConfigSettings
 
 if TYPE_CHECKING:
@@ -192,12 +194,21 @@ def token(ctx, **kwargs):
 @catch_invalid_config
 def show(ctx):
     """Show the active OpenID bearer token."""
-    from locknessie.main import LockNessie
     config_kwargs = ctx.obj or {}
-    settings = safely_get_settings(**config_kwargs)
-    import locknessie.settings as settings_mod
-    settings_mod.settings = settings
-    token = LockNessie().get_token()
+    locknessie = LockNessie(**config_kwargs)
+    token = locknessie.get_token()
     click.echo(token)
 
-
+@token.command()
+@click.pass_context
+@catch_noconfigerror
+def validate(ctx):
+    """Validate the active OpenID bearer token."""
+    config_kwargs = ctx.obj or {}
+    locknessie = LockNessie(**config_kwargs)
+    try:
+        locknessie.validate_token()
+    except (ValueError, jwt.exceptions.InvalidSignatureError, jwt.exceptions.InvalidTokenError, jwt.exceptions.InvalidAlgorithmError) as e:
+        click.secho(f"Token is invalid: {e}", fg="red", err=True)
+    else:
+        click.secho("Token is valid", fg="green")
