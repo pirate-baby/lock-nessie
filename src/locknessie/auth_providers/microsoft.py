@@ -35,7 +35,8 @@ class MicrosoftAuth(AuthBase):
             assert settings.openid_secret, "OpenID secret is required for daemon auth"
         else:
             raise ValueError(f"Invalid auth type: {self.auth_type}")
-
+        self.auth_callback_port = settings.auth_callback_port
+        self.auth_callback_host = settings.auth_callback_host
         self.app = self._get_app(self.cache)
         self.account = self._get_client_id_account(self.app)
 
@@ -103,7 +104,7 @@ class MicrosoftAuth(AuthBase):
         if not self.account or \
             not (result := self.app.acquire_token_silent(scopes=self.scopes, account=self.account)):
             logger.info("no token or account found, attempting to get token interactively via browser...")
-            result = self.app.acquire_token_interactive(scopes=self.scopes, port=1234)
+            result = self.app.acquire_token_interactive(scopes=self.scopes, port=self.auth_callback_port, host=self.auth_callback_host)
         token = self._extract_token_from_result(result)
         self._save_cache(self.cache_file, self.cache)
         return token
