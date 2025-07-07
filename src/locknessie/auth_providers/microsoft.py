@@ -37,6 +37,9 @@ class MicrosoftAuth(AuthBase):
             raise ValueError(f"Invalid auth type: {self.auth_type}")
         self.auth_callback_port = settings.auth_callback_port
         self.auth_callback_host = settings.auth_callback_host
+        # microsoft does not support hosts other than localhost for auth callbacks
+        if self.auth_callback_host not in ("localhost", "127.0.0.1","0.0.0.0", None):
+            raise ValueError(f"Microsoft Entra does not support alternate callback hosts. Must be localhost: {self.auth_callback_host}")
         self.app = self._get_app(self.cache)
         self.account = self._get_client_id_account(self.app)
 
@@ -104,7 +107,7 @@ class MicrosoftAuth(AuthBase):
         if not self.account or \
             not (result := self.app.acquire_token_silent(scopes=self.scopes, account=self.account)):
             logger.info("no token or account found, attempting to get token interactively via browser...")
-            result = self.app.acquire_token_interactive(scopes=self.scopes, port=self.auth_callback_port, host=self.auth_callback_host)
+            result = self.app.acquire_token_interactive(scopes=self.scopes, port=self.auth_callback_port)
         token = self._extract_token_from_result(result)
         self._save_cache(self.cache_file, self.cache)
         return token
