@@ -7,16 +7,16 @@ name = "locknessie"
 description = "LockNessie provides a client and server pair for authentication to Nessie with OpenID."
 dynamic = ["version"]
 readme = "../README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 dependencies = [
-    "fastapi>=0.115.12",
-    "pydantic>=2.11.4",
-    "pydantic-settings>=2.9.1",
-    "click>=8.1.7",
-    "uvicorn>=0.27.1",
-    "jinja2>=3.1.6",
-    "pyjwt>=2.10.1",
-    "requests>=2.32.3",
+    "fastapi>=0.68.0",
+    "pydantic>=1.8.0",
+    "pydantic-settings>=1.8.0",
+    "click>=7.0",
+    "uvicorn>=0.15.0",
+    "jinja2>=2.11.0",
+    "pyjwt>=2.0.0",
+    "requests>=2.25.0",
 ]
 
 [project.scripts]
@@ -24,10 +24,10 @@ locknessie = "locknessie.cli:cli"
 
 [project.optional-dependencies]
 microsoft = [
-    "msal>=1.32.3",
+    "msal>=1.20.0",
 ]
 keycloak = [
-    "python-keycloak>=5.5.0",
+    "python-keycloak>=3.0.0",
 ]
 
 [tool.hatch.build.targets.wheel]
